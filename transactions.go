@@ -2,7 +2,6 @@ package ethcli
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"math/big"
 
@@ -73,9 +72,7 @@ func NewTransactions(client *ethclient.Client) *Transactions {
 	}
 }
 
-// GetLatestBlock from blockchain
 func (t *Transactions) GetLatestBlock() (*Block, error) {
-	// Query the latest block
 	header, _ := t.client.HeaderByNumber(context.Background(), nil)
 	return t.GetBlock((header.Number.Int64()))
 
@@ -92,8 +89,6 @@ func (t *Transactions) GetBlock(number int64) (*Block, error) {
 }
 
 func (t *Transactions) MountBlockData(block *types.Block) (*Block, error) {
-
-	// Build the response to our model
 	_block := &Block{
 		BlockNumber:       block.Number().Int64(),
 		Timestamp:         block.Time(),
@@ -105,8 +100,6 @@ func (t *Transactions) MountBlockData(block *types.Block) (*Block, error) {
 
 	for _, tx := range block.Transactions() {
 		txDetail, err := t.ContractCheckDetail(tx, false)
-		body, _ := json.Marshal(txDetail)
-		log.Printf("body %s", body)
 		if err != nil {
 			continue
 		}
