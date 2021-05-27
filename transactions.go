@@ -66,3 +66,9 @@ type Error struct {
 type Transactions struct {
 	client *ethclient.Client
 }
+
+func NewTransactions(client *ethclient.Client) *Transactions {
+	return &Transactions{
+		client: client,
+	}
+}
