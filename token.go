@@ -1,4 +1,4 @@
-package ethecli
+package ethcli
 
 import (
 	"context"
@@ -22,13 +22,13 @@ import (
 
 type TokenErc20 struct {
 	TokenAddress string
-	url          string
+	client       *ethclient.Client
 }
 
-func NewTokenErc20(TokenAddress string, urlClient string) *TokenErc20 {
+func NewTokenErc20(TokenAddress string, client *ethclient.Client) *TokenErc20 {
 	return &TokenErc20{
 		TokenAddress: TokenAddress,
-		url:          urlClient,
+		client:       client,
 	}
 }
 
@@ -42,12 +42,17 @@ func etherToWei(eth *big.Float) *big.Int {
 	return wei
 }
 
-func (t *TokenErc20) Transfer(address string, amount float64) (string, error) {
+func weiToEther(wei *big.Int) *big.Float {
+	f := new(big.Float)
+	f.SetPrec(236) //  IEEE 754 octuple-precision binary floating-point format: binary256
+	f.SetMode(big.ToNearestEven)
+	fWei := new(big.Float)
+	fWei.SetPrec(236) //  IEEE 754 octuple-precision binary floating-point format: binary256
+	fWei.SetMode(big.ToNearestEven)
+	return f.Quo(fWei.SetInt(wei), big.NewFloat(params.Ether))
+}
 
-	client, err := ethclient.Dial(t.url)
-	if err != nil {
-		return "", err
-	}
+func (t *TokenErc20) Transfer(address string, amount float64) (string, error) {
 
 	privateKey, err := crypto.HexToECDSA(os.Getenv("PRIVKEY"))
 	if err != nil {
@@ -61,16 +66,18 @@ func (t *TokenErc20) Transfer(address string, amount float64) (string, error) {
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	nonce, err := t.client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
 		return "", err
 	}
 
-	gasPrice, err := client.SuggestGasPrice(context.Background())
+	log.Printf("fromAddress \n%s\n", fromAddress)
+
+	gasPrice, err := t.client.SuggestGasPrice(context.Background())
 	if err != nil {
 		return "", err
 	}
-	chainID, err := client.NetworkID(context.Background())
+	chainID, err := t.client.NetworkID(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -81,7 +88,7 @@ func (t *TokenErc20) Transfer(address string, amount float64) (string, error) {
 	}
 
 	tokenAddress := common.HexToAddress(t.TokenAddress)
-	instance, err := abi.NewToken(tokenAddress, client)
+	instance, err := abi.NewToken(tokenAddress, t.client)
 	if err != nil {
 		return "", err
 	}
