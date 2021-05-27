@@ -73,6 +73,16 @@ func NewTransactions(client *ethclient.Client) *Transactions {
 	}
 }
 
+func (t *Transactions) GetBlock(number int64) (*Block, error) {
+
+	blockNumber := big.NewInt(number)
+	block, err := t.client.BlockByNumber(context.Background(), blockNumber)
+	if err != nil {
+		return nil, err
+	}
+	return t.MountBlockData(block)
+}
+
 func (t *Transactions) MountBlockData(block *types.Block) (*Block, error) {
 
 	// Build the response to our model
