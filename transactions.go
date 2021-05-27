@@ -72,3 +72,48 @@ func NewTransactions(client *ethclient.Client) *Transactions {
 		client: client,
 	}
 }
+
+func (t *Transactions) ContractCheckDetail(tx *types.Transaction, pending bool) (*Transaction, error) {
+
+	receipt, _ := t.client.TransactionReceipt(context.Background(), tx.Hash())
+
+	txRaw := &Transaction{
+		Hash:     tx.Hash().String(),
+		Value:    tx.Value().String(),
+		Gas:      tx.Gas(),
+		GasPrice: tx.GasPrice().Uint64(),
+		To:       tx.To().String(),
+		Pending:  pending,
+		Nonce:    tx.Nonce(),
+	}
+
+	if receipt != nil {
+		if len(receipt.Logs) > 0 {
+			txRaw.ContractAddress = receipt.Logs[0].Address.String()
+			tokenAddress := common.HexToAddress(txRaw.ContractAddress)
+
+			instance, err := abi.NewToken(tokenAddress, t.client)
+			if err != nil {
+				return nil, err
+			}
+
+			tokenTransfer, err := instance.ParseTransfer(*receipt.Logs[0])
+			if err != nil {
+				return nil, err
+			}
+
+			amount := weiToEther(tokenTransfer.Value)
+
+			symbol, err := instance.Symbol(&bind.CallOpts{})
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			txRaw.Value = amount.String()
+			txRaw.Symbol = symbol
+			txRaw.Type = "token"
+		}
+	}
+
+	return txRaw, nil
+}
