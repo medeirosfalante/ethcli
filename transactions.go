@@ -73,6 +73,32 @@ func NewTransactions(client *ethclient.Client) *Transactions {
 	}
 }
 
+func (t *Transactions) MountBlockData(block *types.Block) (*Block, error) {
+
+	// Build the response to our model
+	_block := &Block{
+		BlockNumber:       block.Number().Int64(),
+		Timestamp:         block.Time(),
+		Difficulty:        block.Difficulty().Uint64(),
+		Hash:              block.Hash().String(),
+		TransactionsCount: len(block.Transactions()),
+		Transactions:      []*Transaction{},
+	}
+
+	for _, tx := range block.Transactions() {
+		txDetail, err := t.ContractCheckDetail(tx, false)
+		body, _ := json.Marshal(txDetail)
+		log.Printf("body %s", body)
+		if err != nil {
+			continue
+		}
+		_block.Transactions = append(_block.Transactions, txDetail)
+	}
+
+	return _block, nil
+
+}
+
 func (t *Transactions) GetTxByHash(hash common.Hash) (*Transaction, error) {
 
 	tx, pending, err := t.client.TransactionByHash(context.Background(), hash)
