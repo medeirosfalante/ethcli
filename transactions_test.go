@@ -1,8 +1,6 @@
 package ethcli_test
 
 import (
-	"encoding/json"
-	"log"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -18,15 +16,14 @@ func TestGetByBlock(t *testing.T) {
 	}
 	txs := ethcli.NewTransactions(client)
 
-	tx, err := txs.GetBlock(9197775)
+	tx, err := txs.GetBlock(9197771, 9197775, []string{"0xf35d75E2Ce765fD4aB1Da7b331eB03C56D4859c4"})
 	if err != nil {
 		t.Errorf("err : %s", err)
 		return
 	}
-
-	body, _ := json.Marshal(tx)
-	log.Printf("body %s", body)
-
-	t.Error("block ")
+	if len(tx) <= 0 {
+		t.Errorf("invalid counter  need more than 0")
+		return
+	}
 
 }

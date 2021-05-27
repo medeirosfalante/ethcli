@@ -2,12 +2,13 @@ package ethcli
 
 import (
 	"context"
-	"log"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/medeirosfalante/ethcli/abi"
 )
@@ -29,11 +30,13 @@ type Transaction struct {
 	GasPrice        uint64 `json:"gasPrice"`
 	Nonce           uint64 `json:"nonce"`
 	To              string `json:"to"`
+	From            string `json:"from"`
 	Pending         bool   `json:"pending"`
 	Input           bool   `json:"input"`
 	ContractAddress string `json:"contract_address"`
 	Type            string `json:"type"`
 	Symbol          string `json:"symbol"`
+	Confirmation    int64  `json:"confirmation"`
 }
 
 // TransferEthRequest data structure
@@ -72,95 +75,87 @@ func NewTransactions(client *ethclient.Client) *Transactions {
 	}
 }
 
-func (t *Transactions) GetLatestBlock() (*Block, error) {
-	header, _ := t.client.HeaderByNumber(context.Background(), nil)
-	return t.GetBlock((header.Number.Int64()))
+func (t *Transactions) GetBlock(from int64, to int64, contractsAddresses []string) ([]*Transaction, error) {
+	list := []common.Address{}
+	for _, item := range contractsAddresses {
+		contractAddress := common.HexToAddress(item)
+		list = append(list, contractAddress)
+	}
 
-}
+	query := ethereum.FilterQuery{
+		FromBlock: big.NewInt(from),
+		ToBlock:   big.NewInt(to),
+		Addresses: list,
+	}
 
-func (t *Transactions) GetBlock(number int64) (*Block, error) {
-
-	blockNumber := big.NewInt(number)
-	block, err := t.client.BlockByNumber(context.Background(), blockNumber)
+	logs, err := t.client.FilterLogs(context.Background(), query)
 	if err != nil {
 		return nil, err
 	}
-	return t.MountBlockData(block)
-}
 
-func (t *Transactions) MountBlockData(block *types.Block) (*Block, error) {
-	_block := &Block{
-		BlockNumber:       block.Number().Int64(),
-		Timestamp:         block.Time(),
-		Difficulty:        block.Difficulty().Uint64(),
-		Hash:              block.Hash().String(),
-		TransactionsCount: len(block.Transactions()),
-		Transactions:      []*Transaction{},
-	}
-
-	for _, tx := range block.Transactions() {
-		txDetail, err := t.ContractCheckDetail(tx, false)
-		if err != nil {
-			continue
+	var transactions []*Transaction
+	logTransferSig := []byte("Transfer(address,address,uint256)")
+	logTransferSigHash := crypto.Keccak256Hash(logTransferSig)
+	for _, vLog := range logs {
+		switch vLog.Topics[0].Hex() {
+		case logTransferSigHash.Hex():
+			txDetail, err := t.ContractCheckDetail(vLog, false)
+			if err != nil {
+				continue
+			}
+			transactions = append(transactions, txDetail)
 		}
-		_block.Transactions = append(_block.Transactions, txDetail)
 	}
-
-	return _block, nil
-
+	return transactions, nil
 }
 
-func (t *Transactions) GetTxByHash(hash common.Hash) (*Transaction, error) {
+func (t *Transactions) ContractCheckDetail(log types.Log, pending bool) (*Transaction, error) {
+	txHash := common.HexToHash(log.TxHash.Hex())
 
-	tx, pending, err := t.client.TransactionByHash(context.Background(), hash)
+	tx, isPending, err := t.client.TransactionByHash(context.Background(), txHash)
 	if err != nil {
 		return nil, err
 	}
 
-	return t.ContractCheckDetail(tx, pending)
-}
-
-func (t *Transactions) ContractCheckDetail(tx *types.Transaction, pending bool) (*Transaction, error) {
-
-	receipt, _ := t.client.TransactionReceipt(context.Background(), tx.Hash())
+	header, err := t.client.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		return nil, err
+	}
+	confirmations := header.Number.Uint64() - log.BlockNumber
 
 	txRaw := &Transaction{
-		Hash:     tx.Hash().String(),
-		Value:    tx.Value().String(),
-		Gas:      tx.Gas(),
-		GasPrice: tx.GasPrice().Uint64(),
-		To:       tx.To().String(),
-		Pending:  pending,
-		Nonce:    tx.Nonce(),
+		Hash:         tx.Hash().String(),
+		Value:        tx.Value().String(),
+		Gas:          tx.Gas(),
+		GasPrice:     tx.GasPrice().Uint64(),
+		To:           tx.To().String(),
+		Pending:      isPending,
+		Nonce:        tx.Nonce(),
+		Confirmation: int64(confirmations),
 	}
 
-	if receipt != nil {
-		if len(receipt.Logs) > 0 {
-			txRaw.ContractAddress = receipt.Logs[0].Address.String()
-			tokenAddress := common.HexToAddress(txRaw.ContractAddress)
+	txRaw.From = common.HexToAddress(log.Topics[1].Hex()).String()
+	txRaw.To = common.HexToAddress(log.Topics[2].Hex()).String()
 
-			instance, err := abi.NewToken(tokenAddress, t.client)
-			if err != nil {
-				return nil, err
-			}
+	txRaw.ContractAddress = log.Address.String()
+	tokenAddress := common.HexToAddress(txRaw.ContractAddress)
 
-			tokenTransfer, err := instance.ParseTransfer(*receipt.Logs[0])
-			if err != nil {
-				return nil, err
-			}
-
-			amount := weiToEther(tokenTransfer.Value)
-
-			symbol, err := instance.Symbol(&bind.CallOpts{})
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			txRaw.Value = amount.String()
-			txRaw.Symbol = symbol
-			txRaw.Type = "token"
-		}
+	instance, err := abi.NewToken(tokenAddress, t.client)
+	if err != nil {
+		return nil, err
 	}
+
+	tokenTransfer, err := instance.ParseTransfer(log)
+
+	amount := weiToEther(tokenTransfer.Value)
+	symbol, err := instance.Symbol(&bind.CallOpts{})
+	if err != nil {
+		return nil, err
+	}
+
+	txRaw.Value = amount.String()
+	txRaw.Symbol = symbol
+	txRaw.Type = "token"
 
 	return txRaw, nil
 }
