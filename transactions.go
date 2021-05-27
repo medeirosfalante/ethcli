@@ -73,6 +73,16 @@ func NewTransactions(client *ethclient.Client) *Transactions {
 	}
 }
 
+func (t *Transactions) GetTxByHash(hash common.Hash) (*Transaction, error) {
+
+	tx, pending, err := t.client.TransactionByHash(context.Background(), hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return t.ContractCheckDetail(tx, pending)
+}
+
 func (t *Transactions) ContractCheckDetail(tx *types.Transaction, pending bool) (*Transaction, error) {
 
 	receipt, _ := t.client.TransactionReceipt(context.Background(), tx.Hash())
