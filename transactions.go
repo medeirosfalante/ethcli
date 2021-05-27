@@ -73,6 +73,14 @@ func NewTransactions(client *ethclient.Client) *Transactions {
 	}
 }
 
+// GetLatestBlock from blockchain
+func (t *Transactions) GetLatestBlock() (*Block, error) {
+	// Query the latest block
+	header, _ := t.client.HeaderByNumber(context.Background(), nil)
+	return t.GetBlock((header.Number.Int64()))
+
+}
+
 func (t *Transactions) GetBlock(number int64) (*Block, error) {
 
 	blockNumber := big.NewInt(number)
