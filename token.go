@@ -2,18 +2,17 @@ package ethcli
 
 import (
 	"context"
-	"crypto/ecdsa"
+	"errors"
 	"fmt"
-	"log"
 	"math/big"
-	"os"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/params"
+	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 
 	"github.com/medeirosfalante/ethcli/abi"
 )
@@ -52,45 +51,42 @@ func weiToEther(wei *big.Int) *big.Float {
 	return f.Quo(fWei.SetInt(wei), big.NewFloat(params.Ether))
 }
 
-func (t *TokenErc20) Transfer(address string, amount float64) (string, error) {
-
-	privateKey, err := crypto.HexToECDSA(os.Getenv("PRIVKEY"))
+func (t *TokenErc20) Transfer(mnemonic string, address string, amount float64) (string, error) {
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
 	if err != nil {
 		return "", err
 	}
 
-	publicKey := privateKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		log.Fatal("error casting public key to ECDSA")
+	path := hdwallet.MustParseDerivationPath("m/44'/60'/0'/0/0")
+	account, err := wallet.Derive(path, true)
+	if err != nil {
+		return "", fmt.Errorf("account %s", err.Error())
 	}
 
-	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	fromAddress := account.Address
 	nonce, err := t.client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("nonce %s", err.Error())
 	}
-
-	log.Printf("fromAddress \n%s\n", fromAddress)
 
 	gasPrice, err := t.client.SuggestGasPrice(context.Background())
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("gasPrice %s", err.Error())
 	}
-	chainID, err := t.client.NetworkID(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
-	if err != nil {
-		return "", err
+	auth := &bind.TransactOpts{
+		From: fromAddress,
+		Signer: func(address common.Address, tx *types.Transaction) (*types.Transaction, error) {
+			if address != fromAddress {
+				return nil, errors.New("not authorized to sign this account")
+			}
+			return wallet.SignTx(account, tx, nil)
+		},
 	}
 
 	tokenAddress := common.HexToAddress(t.TokenAddress)
 	instance, err := abi.NewToken(tokenAddress, t.client)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("instance %s", err.Error())
 	}
 	total := big.NewFloat(amount)
 	value := etherToWei(total)
@@ -101,7 +97,7 @@ func (t *TokenErc20) Transfer(address string, amount float64) (string, error) {
 	addressRef := common.HexToAddress(address)
 	tx, err := instance.Transfer(auth, addressRef, value)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("tx %s", err.Error())
 	}
 	return tx.Hash().Hex(), nil
 
