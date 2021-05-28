@@ -25,7 +25,7 @@ func TestSendTokenErc20(t *testing.T) {
 		return
 	}
 	if tx == "" {
-		t.Errorf("tx is empany")
+		t.Errorf("tx is empty")
 	}
 
 }
