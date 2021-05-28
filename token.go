@@ -24,6 +24,13 @@ type TokenErc20 struct {
 	client       *ethclient.Client
 }
 
+type TransferOpts struct {
+	Mnemonic string
+	Index    string
+	Address  string
+	Amount   float64
+}
+
 func NewTokenErc20(TokenAddress string, client *ethclient.Client) *TokenErc20 {
 	return &TokenErc20{
 		TokenAddress: TokenAddress,
@@ -51,13 +58,13 @@ func weiToEther(wei *big.Int) *big.Float {
 	return f.Quo(fWei.SetInt(wei), big.NewFloat(params.Ether))
 }
 
-func (t *TokenErc20) Transfer(mnemonic string, address string, amount float64) (string, error) {
-	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+func (t *TokenErc20) Transfer(req *TransferOpts) (string, error) {
+	wallet, err := hdwallet.NewFromMnemonic(req.Mnemonic)
 	if err != nil {
 		return "", err
 	}
 
-	path := hdwallet.MustParseDerivationPath("m/44'/60'/0'/0/0")
+	path := hdwallet.MustParseDerivationPath(fmt.Sprintf("m/44'/60'/0'/0/%s", req.Index))
 	account, err := wallet.Derive(path, true)
 	if err != nil {
 		return "", fmt.Errorf("account %s", err.Error())
@@ -88,13 +95,13 @@ func (t *TokenErc20) Transfer(mnemonic string, address string, amount float64) (
 	if err != nil {
 		return "", fmt.Errorf("instance %s", err.Error())
 	}
-	total := big.NewFloat(amount)
+	total := big.NewFloat(req.Amount)
 	value := etherToWei(total)
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.GasLimit = uint64(300000)
 	auth.GasPrice = gasPrice
 
-	addressRef := common.HexToAddress(address)
+	addressRef := common.HexToAddress(req.Address)
 	tx, err := instance.Transfer(auth, addressRef, value)
 	if err != nil {
 		return "", fmt.Errorf("tx %s", err.Error())
