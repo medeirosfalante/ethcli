@@ -62,10 +62,13 @@ func weiToEther(wei *big.Int) *big.Float {
 	return f.Quo(fWei.SetInt(wei), big.NewFloat(params.Ether))
 }
 
-func (t *TokenErc20) BalanceOf(account string) *big.Float {
+func (t *TokenErc20) BalanceOf(account string) (*big.Float, error) {
 	tokenAddress := common.HexToAddress(account)
-	amount, _ := t.instance.BalanceOf(&bind.CallOpts{}, tokenAddress)
-	return weiToEther(amount)
+	amount, err := t.instance.BalanceOf(&bind.CallOpts{}, tokenAddress)
+	if err != nil {
+		return nil, err
+	}
+	return weiToEther(amount), nil
 }
 
 func CalcGasCost(gasLimit uint64, gasPrice *big.Int) *big.Int {

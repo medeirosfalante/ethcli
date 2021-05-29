@@ -38,7 +38,11 @@ func TestBalanceTokenErc20(t *testing.T) {
 		return
 	}
 	token := ethcli.NewTokenErc20("0xf35d75E2Ce765fD4aB1Da7b331eB03C56D4859c4", client)
-	balance := token.BalanceOf("0xB8A688D5A29a35B01CC00d0e2144E01d3c96bFC3")
+	balance, err := token.BalanceOf("0xB8A688D5A29a35B01CC00d0e2144E01d3c96bFC3")
+	if err != nil {
+		t.Errorf("err : %s", err)
+		return
+	}
 	if balance == nil {
 		t.Error("balance is nil")
 		return
