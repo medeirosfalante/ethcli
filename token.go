@@ -22,6 +22,7 @@ import (
 type TokenErc20 struct {
 	TokenAddress string
 	client       *ethclient.Client
+	instance     *abi.Token
 }
 
 type TransferOpts struct {
@@ -32,9 +33,12 @@ type TransferOpts struct {
 }
 
 func NewTokenErc20(TokenAddress string, client *ethclient.Client) *TokenErc20 {
+	tokenAddress := common.HexToAddress(TokenAddress)
+	instance, _ := abi.NewToken(tokenAddress, client)
 	return &TokenErc20{
 		TokenAddress: TokenAddress,
 		client:       client,
+		instance:     instance,
 	}
 }
 
@@ -50,12 +54,23 @@ func etherToWei(eth *big.Float) *big.Int {
 
 func weiToEther(wei *big.Int) *big.Float {
 	f := new(big.Float)
-	f.SetPrec(236) //  IEEE 754 octuple-precision binary floating-point format: binary256
+	f.SetPrec(236)
 	f.SetMode(big.ToNearestEven)
 	fWei := new(big.Float)
-	fWei.SetPrec(236) //  IEEE 754 octuple-precision binary floating-point format: binary256
+	fWei.SetPrec(236)
 	fWei.SetMode(big.ToNearestEven)
 	return f.Quo(fWei.SetInt(wei), big.NewFloat(params.Ether))
+}
+
+func (t *TokenErc20) BalanceOf(account string) *big.Float {
+	tokenAddress := common.HexToAddress(account)
+	amount, _ := t.instance.BalanceOf(&bind.CallOpts{}, tokenAddress)
+	return weiToEther(amount)
+}
+
+func CalcGasCost(gasLimit uint64, gasPrice *big.Int) *big.Int {
+	gasLimitBig := big.NewInt(int64(gasLimit))
+	return gasLimitBig.Mul(gasLimitBig, gasPrice)
 }
 
 func (t *TokenErc20) Transfer(req *TransferOpts) (string, error) {
@@ -76,10 +91,6 @@ func (t *TokenErc20) Transfer(req *TransferOpts) (string, error) {
 		return "", fmt.Errorf("nonce %s", err.Error())
 	}
 
-	gasPrice, err := t.client.SuggestGasPrice(context.Background())
-	if err != nil {
-		return "", fmt.Errorf("gasPrice %s", err.Error())
-	}
 	auth := &bind.TransactOpts{
 		From: fromAddress,
 		Signer: func(address common.Address, tx *types.Transaction) (*types.Transaction, error) {
@@ -98,9 +109,6 @@ func (t *TokenErc20) Transfer(req *TransferOpts) (string, error) {
 	total := big.NewFloat(req.Amount)
 	value := etherToWei(total)
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.GasLimit = uint64(300000)
-	auth.GasPrice = gasPrice
-
 	addressRef := common.HexToAddress(req.Address)
 	tx, err := instance.Transfer(auth, addressRef, value)
 	if err != nil {
