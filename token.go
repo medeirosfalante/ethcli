@@ -76,22 +76,6 @@ func CalcGasCost(gasLimit uint64, gasPrice *big.Int) *big.Int {
 	return gasLimitBig.Mul(gasLimitBig, gasPrice)
 }
 
-func (t *TokenErc20) GetAddress(mnemonic string, index string) (*common.Address, error) {
-	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
-	if err != nil {
-		return nil, err
-	}
-
-	path := hdwallet.MustParseDerivationPath(fmt.Sprintf("m/44'/60'/0'/0/%s", index))
-	account, err := wallet.Derive(path, true)
-	if err != nil {
-		return nil, fmt.Errorf("account %s", err.Error())
-	}
-
-	return &account.Address, nil
-
-}
-
 func (t *TokenErc20) Transfer(req *TransferOpts) (string, error) {
 	wallet, err := hdwallet.NewFromMnemonic(req.Mnemonic)
 	if err != nil {
