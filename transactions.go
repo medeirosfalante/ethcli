@@ -24,19 +24,20 @@ type Block struct {
 
 // Transaction data structure
 type Transaction struct {
-	Hash            string `json:"hash"`
-	Value           string `json:"value"`
-	Gas             uint64 `json:"gas"`
-	GasPrice        uint64 `json:"gasPrice"`
-	Nonce           uint64 `json:"nonce"`
-	To              string `json:"to"`
-	From            string `json:"from"`
-	Pending         bool   `json:"pending"`
-	Input           bool   `json:"input"`
-	ContractAddress string `json:"contract_address"`
-	Type            string `json:"type"`
-	Symbol          string `json:"symbol"`
-	Confirmation    int64  `json:"confirmation"`
+	Hash            string  `json:"hash"`
+	Value           string  `json:"value"`
+	Gas             uint64  `json:"gas"`
+	GasPrice        uint64  `json:"gasPrice"`
+	Nonce           uint64  `json:"nonce"`
+	To              string  `json:"to"`
+	From            string  `json:"from"`
+	Pending         bool    `json:"pending"`
+	Input           bool    `json:"input"`
+	ContractAddress string  `json:"contract_address"`
+	Type            string  `json:"type"`
+	Symbol          string  `json:"symbol"`
+	Confirmation    int64   `json:"confirmation"`
+	ValueFormated   float64 `json:"value_formated"`
 }
 
 // TransferEthRequest data structure
@@ -66,12 +67,14 @@ type Error struct {
 }
 
 type Transactions struct {
-	client *ethclient.Client
+	client     *ethclient.Client
+	NativeName string
 }
 
-func NewTransactions(client *ethclient.Client) *Transactions {
+func NewTransactions(client *ethclient.Client, NativeName string) *Transactions {
 	return &Transactions{
-		client: client,
+		client:     client,
+		NativeName: NativeName,
 	}
 }
 
@@ -146,6 +149,9 @@ func (t *Transactions) ContractCheckDetail(log types.Log, pending bool) (*Transa
 	}
 
 	tokenTransfer, err := instance.ParseTransfer(log)
+	if err != nil {
+		return nil, err
+	}
 
 	amount := weiToEther(tokenTransfer.Value)
 	symbol, err := instance.Symbol(&bind.CallOpts{})
@@ -158,4 +164,74 @@ func (t *Transactions) ContractCheckDetail(log types.Log, pending bool) (*Transa
 	txRaw.Type = "token"
 
 	return txRaw, nil
+}
+
+func (t *Transactions) GetBlockNative(from int64, to int64) ([]*Transaction, error) {
+
+	header, err := t.client.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var transactions []*Transaction
+	for i := from; i < to; i++ {
+		block, err := t.client.BlockByNumber(context.Background(), big.NewInt(i))
+		if err != nil {
+			continue
+		}
+		for _, tx := range block.Transactions() {
+			if tx.Value().Int64() > 0 {
+				receipt, err := t.client.TransactionReceipt(context.Background(), tx.Hash())
+				if err != nil {
+					continue
+				}
+
+				chainID, err := t.client.NetworkID(context.Background())
+				if err != nil {
+					continue
+				}
+
+				msg, err := tx.AsMessage(types.NewEIP155Signer(chainID))
+				if err != nil {
+					continue
+				}
+
+				confirmations := header.Number.Uint64() - receipt.BlockNumber.Uint64()
+				ValueFormated, _ := weiToEther(tx.Value()).Float64()
+				txRaw := &Transaction{
+					Hash:          tx.Hash().String(),
+					Value:         tx.Value().String(),
+					Gas:           tx.Gas(),
+					GasPrice:      tx.GasPrice().Uint64(),
+					To:            tx.To().String(),
+					Nonce:         tx.Nonce(),
+					Confirmation:  int64(confirmations),
+					ValueFormated: ValueFormated,
+					Symbol:        t.NativeName,
+					From:          msg.From().Hex(),
+				}
+				if index := t.FindTransactionByID(txRaw.Hash, transactions); index > 0 {
+					transactions[index] = txRaw
+				} else {
+					transactions = append(transactions, txRaw)
+				}
+
+			}
+
+		}
+
+	}
+
+	return transactions, nil
+}
+
+func (t *Transactions) FindTransactionByID(hash string, txs []*Transaction) int {
+	for index, item := range txs {
+		if item.Hash == hash {
+			return index
+		}
+	}
+
+	return -1
+
 }
