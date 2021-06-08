@@ -38,6 +38,9 @@ type Transaction struct {
 	Symbol          string  `json:"symbol"`
 	Confirmation    int64   `json:"confirmation"`
 	ValueFormated   float64 `json:"value_formated"`
+	Blockhash       string  `json:"blockhash"`
+	BlockIndex      int64   `json:"blockindex"`
+	Blocktime       int64   `json:"blocktime"`
 }
 
 // TransferEthRequest data structure
@@ -135,6 +138,8 @@ func (t *Transactions) ContractCheckDetail(log types.Log, pending bool) (*Transa
 		Pending:      isPending,
 		Nonce:        tx.Nonce(),
 		Confirmation: int64(confirmations),
+		Blockhash:    log.BlockHash.Hex(),
+		BlockIndex:   int64(log.BlockNumber),
 	}
 
 	txRaw.From = common.HexToAddress(log.Topics[1].Hex()).String()
@@ -209,6 +214,8 @@ func (t *Transactions) GetBlockNative(from int64, to int64) ([]*Transaction, err
 					ValueFormated: ValueFormated,
 					Symbol:        t.NativeName,
 					From:          msg.From().Hex(),
+					Blockhash:     receipt.BlockHash.Hex(),
+					BlockIndex:    int64(receipt.BlockNumber.Uint64()),
 				}
 				if index := t.FindTransactionByID(txRaw.Hash, transactions); index > 0 {
 					transactions[index] = txRaw
