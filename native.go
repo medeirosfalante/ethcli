@@ -24,13 +24,13 @@ func NewNative(client *ethclient.Client) *Native {
 	}
 }
 
-func (t *Native) GetAddress(mnemonic string, index string) (*common.Address, error) {
+func (t *Native) GetAddress(mnemonic string, pathDerivation string) (*common.Address, error) {
 	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
 	if err != nil {
 		return nil, err
 	}
 
-	path := hdwallet.MustParseDerivationPath(fmt.Sprintf("m/44'/60'/0'/0/%s", index))
+	path := hdwallet.MustParseDerivationPath(pathDerivation)
 	account, err := wallet.Derive(path, true)
 	if err != nil {
 		return nil, fmt.Errorf("account %s", err.Error())
