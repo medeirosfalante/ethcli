@@ -222,6 +222,10 @@ func (t *Transactions) ProcessTransations(txs types.Transactions, blockNumber ui
 			if err != nil {
 				continue
 			}
+			var to string
+			if tx.To() != nil {
+				to = tx.To().String()
+			}
 
 			confirmations := blockNumber - receipt.BlockNumber.Uint64()
 			ValueFormated, _ := weiToEther(tx.Value()).Float64()
@@ -230,7 +234,7 @@ func (t *Transactions) ProcessTransations(txs types.Transactions, blockNumber ui
 				Value:         tx.Value().String(),
 				Gas:           tx.Gas(),
 				GasPrice:      tx.GasPrice().Uint64(),
-				To:            tx.To().String(),
+				To:            to,
 				Nonce:         tx.Nonce(),
 				Confirmation:  int64(confirmations),
 				ValueFormated: ValueFormated,
