@@ -256,6 +256,57 @@ func (t *Transactions) ProcessTransations(txs types.Transactions, blockNumber ui
 	return transactions, nil
 }
 
+func (t *Transactions) GetTrasactionByHex(hash string) (*Transaction, error) {
+	header, err := t.client.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		return nil, err
+	}
+	tx, _, err := t.client.TransactionByHash(context.Background(), common.HexToHash(hash))
+	if err != nil {
+		return nil, err
+	}
+	receipt, err := t.client.TransactionReceipt(context.Background(), common.HexToHash(hash))
+	if err != nil {
+		return nil, err
+	}
+
+	confirmations := header.Number.Int64() - receipt.BlockNumber.Int64()
+
+	ValueFormated, _ := weiToEther(tx.Value()).Float64()
+
+	var to string
+	if tx.To() != nil {
+		to = tx.To().String()
+	}
+
+	chainID, err := t.client.NetworkID(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	msg, err := tx.AsMessage(types.NewEIP155Signer(chainID))
+	if err != nil {
+		return nil, err
+	}
+
+	txRaw := &Transaction{
+		Hash:          tx.Hash().String(),
+		Value:         tx.Value().String(),
+		Gas:           tx.Gas(),
+		GasPrice:      tx.GasPrice().Uint64(),
+		To:            to,
+		Nonce:         tx.Nonce(),
+		Confirmation:  int64(confirmations),
+		ValueFormated: ValueFormated,
+		Symbol:        t.NativeName,
+		From:          msg.From().Hex(),
+		Blockhash:     receipt.BlockHash.Hex(),
+		BlockIndex:    int64(receipt.BlockNumber.Uint64()),
+	}
+
+	return txRaw, nil
+}
+
 func (t *Transactions) FindTransactionByID(hash string, txs []*Transaction) int {
 	for index, item := range txs {
 		if item.Hash == hash {
