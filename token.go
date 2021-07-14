@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 
@@ -52,14 +53,14 @@ func etherToWei(eth *big.Float) *big.Int {
 	return wei
 }
 
-func weiToEther(wei *big.Int) *big.Float {
+func weiToEther(wei *big.Int, parm float64) *big.Float {
 	f := new(big.Float)
 	f.SetPrec(236)
 	f.SetMode(big.ToNearestEven)
 	fWei := new(big.Float)
 	fWei.SetPrec(236)
 	fWei.SetMode(big.ToNearestEven)
-	return f.Quo(fWei.SetInt(wei), big.NewFloat(params.Ether))
+	return f.Quo(fWei.SetInt(wei), big.NewFloat(parm))
 }
 
 func (t *TokenErc20) BalanceOf(account string) (*big.Float, error) {
@@ -68,7 +69,13 @@ func (t *TokenErc20) BalanceOf(account string) (*big.Float, error) {
 	if err != nil {
 		return nil, err
 	}
-	return weiToEther(amount), nil
+	instance, err := abi.NewToken(tokenAddress, t.client)
+	ref, err := instance.Decimals(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return weiToEther(amount, math.Pow10(int(ref.Int64()))), nil
 }
 
 func CalcGasCost(gasLimit uint64, gasPrice *big.Int) *big.Int {

@@ -2,6 +2,7 @@ package ethcli
 
 import (
 	"context"
+	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum"
@@ -10,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/medeirosfalante/ethcli/abi"
 )
 
@@ -158,12 +160,17 @@ func (t *Transactions) ContractCheckDetail(log types.Log, pending bool) (*Transa
 		return nil, err
 	}
 
-	amount := weiToEther(tokenTransfer.Value)
 	symbol, err := instance.Symbol(&bind.CallOpts{})
 	if err != nil {
 		return nil, err
 	}
 
+	ref, err := instance.Decimals(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	amount := weiToEther(tokenTransfer.Value, math.Pow10(int(ref.Int64())))
 	txRaw.Value = amount.String()
 	txRaw.Symbol = symbol
 	txRaw.Type = "token"
@@ -228,7 +235,7 @@ func (t *Transactions) ProcessTransations(txs types.Transactions, blockNumber ui
 			}
 
 			confirmations := blockNumber - receipt.BlockNumber.Uint64()
-			ValueFormated, _ := weiToEther(tx.Value()).Float64()
+			ValueFormated, _ := weiToEther(tx.Value(), params.Ether).Float64()
 			txRaw := &Transaction{
 				Hash:          tx.Hash().String(),
 				Value:         tx.Value().String(),
@@ -272,7 +279,7 @@ func (t *Transactions) GetTrasactionByHex(hash string) (*Transaction, error) {
 
 	confirmations := header.Number.Int64() - receipt.BlockNumber.Int64()
 
-	ValueFormated, _ := weiToEther(tx.Value()).Float64()
+	ValueFormated, _ := weiToEther(tx.Value(), params.Ether).Float64()
 
 	var to string
 	if tx.To() != nil {

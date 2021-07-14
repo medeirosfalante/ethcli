@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/params"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 )
 
@@ -46,7 +47,7 @@ func (t *Native) BalanceOf(address string) (*big.Float, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return weiToEther(balance), nil
+	return weiToEther(balance, params.Ether), nil
 }
 
 func (t *Native) Transfer(req *TransferOpts) (string, error) {
