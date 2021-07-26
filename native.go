@@ -56,7 +56,7 @@ func (t *Native) Transfer(req *TransferOpts) (string, error) {
 		return "", fmt.Errorf("mnemonic %s", err.Error())
 	}
 
-	path := hdwallet.MustParseDerivationPath(fmt.Sprintf("m/44'/60'/0'/0/%s", req.Index))
+	path := hdwallet.MustParseDerivationPath(req.Path)
 	account, err := wallet.Derive(path, true)
 	if err != nil {
 		return "", fmt.Errorf("account %s", err.Error())

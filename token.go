@@ -28,7 +28,7 @@ type TokenErc20 struct {
 
 type TransferOpts struct {
 	Mnemonic string
-	Index    string
+	Path     string
 	Address  string
 	Amount   float64
 }
@@ -89,7 +89,7 @@ func (t *TokenErc20) Transfer(req *TransferOpts) (string, error) {
 		return "", err
 	}
 
-	path := hdwallet.MustParseDerivationPath(fmt.Sprintf("m/44'/60'/0'/0/%s", req.Index))
+	path := hdwallet.MustParseDerivationPath(req.Path)
 	account, err := wallet.Derive(path, true)
 	if err != nil {
 		return "", fmt.Errorf("account %s", err.Error())
