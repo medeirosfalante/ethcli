@@ -69,7 +69,7 @@ func (t *Native) Transfer(req *TransferOpts) (string, error) {
 	}
 
 	total := big.NewFloat(req.Amount)
-	value := etherToWei(total)
+	value := etherToWei(total, params.Ether)
 	var data []byte
 	gasLimit := uint64(21000) // in units
 	gasPrice, err := t.client.SuggestGasPrice(context.Background())

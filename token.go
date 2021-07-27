@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strconv"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/params"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 
 	"github.com/medeirosfalante/ethcli/abi"
@@ -43,12 +43,12 @@ func NewTokenErc20(TokenAddress string, client *ethclient.Client) *TokenErc20 {
 	}
 }
 
-func etherToWei(eth *big.Float) *big.Int {
+func etherToWei(eth *big.Float, parm int) *big.Int {
 	truncInt, _ := eth.Int(nil)
-	truncInt = new(big.Int).Mul(truncInt, big.NewInt(params.Ether))
-	fracStr := strings.Split(fmt.Sprintf("%.18f", eth), ".")[1]
-	fracStr += strings.Repeat("0", 18-len(fracStr))
-	fracInt, _ := new(big.Int).SetString(fracStr, 10)
+	potencial := strings.Repeat("0", parm)
+	i, _ := strconv.ParseInt("1"+potencial, 10, 64)
+	truncInt = new(big.Int).Mul(truncInt, big.NewInt(i))
+	fracInt, _ := new(big.Int).SetString(potencial, parm)
 	wei := new(big.Int).Add(truncInt, fracInt)
 	return wei
 }
@@ -117,7 +117,11 @@ func (t *TokenErc20) Transfer(req *TransferOpts) (string, error) {
 		return "", fmt.Errorf("instance %s", err.Error())
 	}
 	total := big.NewFloat(req.Amount)
-	value := etherToWei(total)
+	ref, err := instance.Decimals(nil)
+	if err != nil {
+		return "", err
+	}
+	value := etherToWei(total, int(ref.Int64()))
 	auth.Nonce = big.NewInt(int64(nonce))
 	addressRef := common.HexToAddress(req.Address)
 	tx, err := instance.Transfer(auth, addressRef, value)

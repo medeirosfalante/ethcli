@@ -18,7 +18,7 @@ func TestSendNative(t *testing.T) {
 		return
 	}
 	native := ethcli.NewNative(client)
-	tx, err := native.Transfer(&ethcli.TransferOpts{Mnemonic: os.Getenv("MNEMONIC"), Index: "1", Address: "0xB8A688D5A29a35B01CC00d0e2144E01d3c96bFC3", Amount: 350.50})
+	tx, err := native.Transfer(&ethcli.TransferOpts{Mnemonic: os.Getenv("MNEMONIC"), Path: "1", Address: "0xB8A688D5A29a35B01CC00d0e2144E01d3c96bFC3", Amount: 350.50})
 	if err != nil {
 		t.Errorf("err : %s", err)
 		return

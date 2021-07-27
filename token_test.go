@@ -19,7 +19,7 @@ func TestSendTokenErc20(t *testing.T) {
 	}
 	token := ethcli.NewTokenErc20("0xf35d75E2Ce765fD4aB1Da7b331eB03C56D4859c4", client)
 
-	tx, err := token.Transfer(&ethcli.TransferOpts{Mnemonic: os.Getenv("MNEMONIC"), Index: "1", Address: "0xB8A688D5A29a35B01CC00d0e2144E01d3c96bFC3", Amount: 350.50})
+	tx, err := token.Transfer(&ethcli.TransferOpts{Mnemonic: os.Getenv("MNEMONIC"), Path: "1", Address: "0xB8A688D5A29a35B01CC00d0e2144E01d3c96bFC3", Amount: 350.50})
 	if err != nil {
 		t.Errorf("err : %s", err)
 		return
