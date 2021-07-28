@@ -69,7 +69,10 @@ func (t *TokenErc20) BalanceOf(account string) (*big.Float, error) {
 	if err != nil {
 		return nil, err
 	}
-	instance, err := abi.NewToken(tokenAddress, t.client)
+	instance, err := abi.NewToken(common.HexToAddress(t.TokenAddress), t.client)
+	if err != nil {
+		return nil, err
+	}
 	ref, err := instance.Decimals(nil)
 	if err != nil {
 		return nil, err
