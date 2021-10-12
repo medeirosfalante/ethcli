@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/medeirosfalante/ethcli/util"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 )
 
@@ -69,7 +70,7 @@ func (t *Native) Transfer(req *TransferOpts) (string, error) {
 	}
 
 	total := big.NewFloat(req.Amount)
-	value := etherToWei(total, params.Ether)
+	value := util.ToWei(total, params.Ether)
 	var data []byte
 	gasLimit := uint64(21000) // in units
 	gasPrice, err := t.client.SuggestGasPrice(context.Background())
