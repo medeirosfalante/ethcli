@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	ethcli "github.com/medeirosfalante/ethcli"
+	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 
 	"github.com/joho/godotenv"
 )
@@ -47,4 +48,27 @@ func TestBalanceNative(t *testing.T) {
 		return
 	}
 
+}
+
+func TestGetAddress(t *testing.T) {
+	godotenv.Load()
+	wallet, err := hdwallet.NewFromMnemonic(os.Getenv("MNEMONIC"))
+	if err != nil {
+		t.Errorf("err : %s", err)
+		return
+	}
+
+	path := hdwallet.MustParseDerivationPath("1")
+	account, err := wallet.Derive(path, true)
+	if err != nil {
+		t.Errorf("err : %s", err)
+		return
+	}
+	priv, _ := wallet.PrivateKeyHex(account)
+	t.Errorf("err : %s\n", priv)
+	t.Errorf("err : %s\n", account.Address)
+	if account.Address.Hex() != "" {
+		t.Errorf("err : %s", err)
+		return
+	}
 }
