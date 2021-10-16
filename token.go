@@ -21,6 +21,7 @@ import (
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 
 	"github.com/medeirosfalante/ethcli/abi"
+	"github.com/medeirosfalante/ethcli/util"
 )
 
 //sudo apt-get install libhidapi-dev
@@ -111,8 +112,12 @@ func (t *TokenErc20) BuyToken(req *TransferOpts) (string, error) {
 	deadline := &big.Int{}
 	deadline.SetInt64(time.Now().Add(10 * time.Minute).Unix())
 
-	amountOutMin := &big.Int{}
-	amountOutMin.SetInt64(20)
+	ref, err := t.instance.Decimals(nil)
+	if err != nil {
+		return "", err
+	}
+
+	amountOutMin := util.ToWei(0.01, int(ref.Int64()))
 	auth.Nonce = big.NewInt(int64(nonce))
 
 	file, err := os.OpenFile("./pancakeswap/router.json", os.O_RDWR, 0644)
