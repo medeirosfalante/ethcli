@@ -225,7 +225,7 @@ func (t *Transactions) ProcessTransations(txs types.Transactions, blockNumber ui
 				continue
 			}
 
-			msg, err := tx.AsMessage(types.NewEIP155Signer(chainID))
+			msg, err := tx.AsMessage(types.NewEIP155Signer(chainID), nil)
 			if err != nil {
 				continue
 			}
@@ -291,7 +291,7 @@ func (t *Transactions) GetTrasactionByHex(hash string) (*Transaction, error) {
 		return nil, err
 	}
 
-	msg, err := tx.AsMessage(types.NewEIP155Signer(chainID))
+	msg, err := tx.AsMessage(types.NewEIP155Signer(chainID), nil)
 	if err != nil {
 		return nil, err
 	}
