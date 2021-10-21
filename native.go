@@ -14,6 +14,10 @@ import (
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 )
 
+const (
+	params_ether int = 18
+)
+
 //sudo apt-get install libhidapi-dev
 
 type Native struct {
@@ -69,8 +73,7 @@ func (t *Native) Transfer(req *TransferOpts) (string, error) {
 		return "", fmt.Errorf("nonce %s", err.Error())
 	}
 
-	total := big.NewFloat(req.Amount)
-	value := util.ToWei(total, params.Ether)
+	value := util.ToWei(req.Amount, params_ether)
 	var data []byte
 	gasLimit := uint64(21000) // in units
 	gasPrice, err := t.client.SuggestGasPrice(context.Background())
