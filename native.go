@@ -94,3 +94,11 @@ func (t *Native) Transfer(req *TransferOpts) (string, error) {
 	return sign.Hash().Hex(), nil
 
 }
+
+func (t *Native) SuggestGasPrice() (*big.Int, error) {
+	gasPrice, err := t.client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("gasPrice %s", err.Error())
+	}
+	return gasPrice, nil
+}
