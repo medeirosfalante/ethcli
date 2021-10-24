@@ -2,6 +2,7 @@ package ethcli
 
 import (
 	"context"
+	"errors"
 	"math"
 	"math/big"
 
@@ -123,6 +124,10 @@ func (t *Transactions) ContractCheckDetail(log types.Log, pending bool) (*Transa
 	tx, isPending, err := t.client.TransactionByHash(context.Background(), txHash)
 	if err != nil {
 		return nil, err
+	}
+
+	if tx.To() == nil {
+		return nil, errors.New("to is null")
 	}
 
 	header, err := t.client.HeaderByNumber(context.Background(), nil)
