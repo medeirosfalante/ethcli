@@ -67,10 +67,17 @@ func (t *Native) Transfer(req *TransferOpts) (string, error) {
 		return "", fmt.Errorf("account %s", err.Error())
 	}
 
+
 	fromAddress := account.Address
 	nonce, err := t.client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
 		return "", fmt.Errorf("nonce %s", err.Error())
+	}
+
+
+	chainID, err := t.client.ChainID(context.Background())
+	if err != nil {
+		return "", fmt.Errorf("chainID %s", err.Error())
 	}
 
 	value := util.ToWei(req.Amount, params_ether)
@@ -86,7 +93,7 @@ func (t *Native) Transfer(req *TransferOpts) (string, error) {
 	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, data)
 
 
-	sign, err := wallet.SignTxEIP155(account, tx, req.ChainID)
+	sign, err := wallet.SignTxEIP155(account, tx, chainID)
 	if err != nil {
 		return "", fmt.Errorf("sign %s", err.Error())
 	}

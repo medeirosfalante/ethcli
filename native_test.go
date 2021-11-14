@@ -22,17 +22,12 @@ func TestSendNative(t *testing.T) {
 			return
 		}
 
-		chainID, err := client.ChainID(context.Background())
-		if err != nil {
-			t.Errorf("chainID %s", err.Error())
-		}
 
 		native := ethcli.NewNative(client)
 
 		config := &ethcli.TransferOpts{Mnemonic: os.Getenv("MNEMONIC"),
 			Path: "0",
 			Address: "0x9A034fbc67b2851e9E28F4bb45FD6655E9F9dAeE",
-			ChainID: chainID,
 			Amount: 0.005}
 
 
@@ -55,19 +50,12 @@ func TestSendNative(t *testing.T) {
 			return
 		}
 
-
-		chainID, err := client.ChainID(context.Background())
-		if err != nil {
-			t.Errorf("chainID %s", err.Error())
-		}
-
 		native := ethcli.NewNative(client)
 
 
 		config := &ethcli.TransferOpts{Mnemonic: os.Getenv("MNEMONIC"),
 			Path: "0",
 			Address: "0x9A034fbc67b2851e9E28F4bb45FD6655E9F9dAeE",
-			ChainID: chainID,
 			Amount: 0.1}
 
 

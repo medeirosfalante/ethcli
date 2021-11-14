@@ -1,7 +1,6 @@
 package ethcli_test
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -22,17 +21,11 @@ func TestSendTokenErc20(t *testing.T) {
 			return
 		}
 
-		chainID, err := client.ChainID(context.Background())
-		if err != nil {
-			t.Errorf("chainID %s", err.Error())
-		}
-
 
 		token := ethcli.NewTokenErc20("0x2d7882bedcbfddce29ba99965dd3cdf7fcb10a1e", client)
 		config := &ethcli.TransferOpts{Mnemonic: os.Getenv("MNEMONIC"),
 			Path: "0",
 			Address: "0x9A034fbc67b2851e9E28F4bb45FD6655E9F9dAeE",
-			ChainID: chainID,
 			Amount: 0.05}
 
 		tx, err := token.Transfer(config)
@@ -52,16 +45,10 @@ func TestSendTokenErc20(t *testing.T) {
 			return
 		}
 
-		chainID, err := client.ChainID(context.Background())
-		if err != nil {
-			t.Errorf("chainID %s", err.Error())
-		}
-
 		token := ethcli.NewTokenErc20("0xed24fc36d5ee211ea25a80239fb8c4cfd80f12ee", client)
 		config := &ethcli.TransferOpts{Mnemonic: os.Getenv("MNEMONIC"),
 			Path: "0",
 			Address: "0x9A034fbc67b2851e9E28F4bb45FD6655E9F9dAeE",
-			ChainID: chainID,
 			Amount: 1}
 
 		tx, err := token.Transfer(config)
