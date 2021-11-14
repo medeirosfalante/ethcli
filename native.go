@@ -81,16 +81,24 @@ func (t *Native) Transfer(req *TransferOpts) (string, error) {
 		return "", fmt.Errorf("gasPrice %s", err.Error())
 	}
 
+
 	toAddress := common.HexToAddress(req.Address)
 	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, data)
-	sign, err := wallet.SignTx(account, tx, nil)
+
+
+	sign, err := wallet.SignTxEIP155(account, tx, req.ChainID)
 	if err != nil {
 		return "", fmt.Errorf("sign %s", err.Error())
 	}
+
+
 	err = t.client.SendTransaction(context.Background(), sign)
 	if err != nil {
 		return "", fmt.Errorf("tx %s", err.Error())
 	}
+
+
+
 	return sign.Hash().Hex(), nil
 
 }
@@ -102,3 +110,5 @@ func (t *Native) SuggestGasPrice() (*big.Int, error) {
 	}
 	return gasPrice, nil
 }
+
+

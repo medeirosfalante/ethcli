@@ -38,6 +38,7 @@ type TransferOpts struct {
 	Path     string
 	Address  string
 	Amount   float64
+	ChainID *big.Int
 }
 
 const wethTokenAddress = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"
@@ -211,7 +212,7 @@ func (t *TokenErc20) Transfer(req *TransferOpts) (string, error) {
 			if address != fromAddress {
 				return nil, errors.New("not authorized to sign this account")
 			}
-			return wallet.SignTx(account, tx, nil)
+			return wallet.SignTxEIP155(account, tx, req.ChainID)
 		},
 	}
 
@@ -234,4 +235,12 @@ func (t *TokenErc20) Transfer(req *TransferOpts) (string, error) {
 	}
 	return tx.Hash().Hex(), nil
 
+}
+
+func (t *TokenErc20) ChainID() (*big.Int, error){
+	chainID, err := t.client.ChainID(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("chainID %s", err.Error())
+	}
+	return chainID, nil
 }
