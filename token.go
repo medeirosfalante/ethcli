@@ -205,13 +205,18 @@ func (t *TokenErc20) Transfer(req *TransferOpts) (string, error) {
 		return "", fmt.Errorf("nonce %s", err.Error())
 	}
 
+	chainID, err := t.client.ChainID(context.Background())
+	if err != nil {
+		return "", fmt.Errorf("chainID %s", err.Error())
+	}
+
 	auth := &bind.TransactOpts{
 		From: fromAddress,
 		Signer: func(address common.Address, tx *types.Transaction) (*types.Transaction, error) {
 			if address != fromAddress {
 				return nil, errors.New("not authorized to sign this account")
 			}
-			return wallet.SignTx(account, tx, nil)
+			return wallet.SignTxEIP155(account, tx, chainID)
 		},
 	}
 
@@ -234,4 +239,12 @@ func (t *TokenErc20) Transfer(req *TransferOpts) (string, error) {
 	}
 	return tx.Hash().Hex(), nil
 
+}
+
+func (t *TokenErc20) ChainID() (*big.Int, error){
+	chainID, err := t.client.ChainID(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("chainID %s", err.Error())
+	}
+	return chainID, nil
 }

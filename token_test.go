@@ -10,23 +10,56 @@ import (
 	"github.com/joho/godotenv"
 )
 
+
 func TestSendTokenErc20(t *testing.T) {
 	godotenv.Load()
-	client, err := ethclient.Dial("https://data-seed-prebsc-2-s2.binance.org:8545")
-	if err != nil {
-		t.Errorf("err : %s", err)
-		return
-	}
-	token := ethcli.NewTokenErc20("0xf35d75E2Ce765fD4aB1Da7b331eB03C56D4859c4", client)
 
-	tx, err := token.Transfer(&ethcli.TransferOpts{Mnemonic: os.Getenv("MNEMONIC"), Path: "1", Address: "0xB8A688D5A29a35B01CC00d0e2144E01d3c96bFC3", Amount: 350.50})
-	if err != nil {
-		t.Errorf("err : %s", err)
-		return
-	}
-	if tx == "" {
-		t.Errorf("tx is empty")
-	}
+	t.Run("Polygon Network", func(t *testing.T) {
+		client, err := ethclient.Dial("https://matic-mumbai.chainstacklabs.com/")
+		if err != nil {
+			t.Errorf("err : %s", err)
+			return
+		}
+
+
+		token := ethcli.NewTokenErc20("0x2d7882bedcbfddce29ba99965dd3cdf7fcb10a1e", client)
+		config := &ethcli.TransferOpts{Mnemonic: os.Getenv("MNEMONIC"),
+			Path: "0",
+			Address: "0x9A034fbc67b2851e9E28F4bb45FD6655E9F9dAeE",
+			Amount: 0.05}
+
+		tx, err := token.Transfer(config)
+		if err != nil {
+			t.Errorf("err : %s", err)
+			return
+		}
+		if tx == "" {
+			t.Errorf("tx is empty")
+		}
+	})
+
+	t.Run("BSC network", func(t *testing.T) {
+		client, err := ethclient.Dial("https://data-seed-prebsc-1-s1.binance.org:8545/")
+		if err != nil {
+			t.Errorf("err : %s", err)
+			return
+		}
+
+		token := ethcli.NewTokenErc20("0xed24fc36d5ee211ea25a80239fb8c4cfd80f12ee", client)
+		config := &ethcli.TransferOpts{Mnemonic: os.Getenv("MNEMONIC"),
+			Path: "0",
+			Address: "0x9A034fbc67b2851e9E28F4bb45FD6655E9F9dAeE",
+			Amount: 1}
+
+		tx, err := token.Transfer(config)
+		if err != nil {
+			t.Errorf("err : %s", err)
+			return
+		}
+		if tx == "" {
+			t.Errorf("tx is empty")
+		}
+	})
 
 }
 
@@ -53,20 +86,45 @@ func TestBuyTokenErc20(t *testing.T) {
 
 func TestBalanceTokenErc20(t *testing.T) {
 	godotenv.Load()
-	client, err := ethclient.Dial("https://data-seed-prebsc-2-s2.binance.org:8545")
-	if err != nil {
-		t.Errorf("err : %s", err)
-		return
-	}
-	token := ethcli.NewTokenErc20("0xf35d75E2Ce765fD4aB1Da7b331eB03C56D4859c4", client)
-	balance, err := token.BalanceOf("0xB8A688D5A29a35B01CC00d0e2144E01d3c96bFC3")
-	if err != nil {
-		t.Errorf("err : %s", err)
-		return
-	}
-	if balance == nil {
-		t.Error("balance is nil")
-		return
-	}
+
+	t.Run("Polygon Network", func(t *testing.T) {
+		client, err := ethclient.Dial("https://matic-mumbai.chainstacklabs.com/")
+		if err != nil {
+			t.Errorf("err : %s", err)
+			return
+		}
+		token := ethcli.NewTokenErc20("0x2d7882bedcbfddce29ba99965dd3cdf7fcb10a1e", client)
+		balance, err := token.BalanceOf("0x2e0dD29872aee6dA37fe5c9eDf84C0b263AE04DF")
+		if err != nil {
+			t.Errorf("err : %s", err)
+			return
+		}
+		if balance == nil {
+			t.Error("balance is nil")
+			return
+		}
+
+		t.Log(balance.String())
+	})
+
+	t.Run("BSC Network", func(t *testing.T) {
+		client, err := ethclient.Dial("https://data-seed-prebsc-1-s1.binance.org:8545/")
+		if err != nil {
+			t.Errorf("err : %s", err)
+			return
+		}
+		token := ethcli.NewTokenErc20("0xed24fc36d5ee211ea25a80239fb8c4cfd80f12ee", client)
+		balance, err := token.BalanceOf("0x9A034fbc67b2851e9E28F4bb45FD6655E9F9dAeE")
+		if err != nil {
+			t.Errorf("err : %s", err)
+			return
+		}
+		if balance == nil {
+			t.Error("balance is nil")
+			return
+		}
+		t.Log(balance.String())
+	})
 
 }
+
