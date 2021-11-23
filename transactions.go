@@ -129,22 +129,13 @@ func (t *Transactions) ContractCheckDetail(log types.Log, pending bool) (*Transa
 	if tx.To() == nil {
 		return nil, errors.New("to is null")
 	}
-
-	header, err := t.client.HeaderByNumber(context.Background(), nil)
-	if err != nil {
-		return nil, err
-	}
-	confirmations := header.Number.Uint64() - log.BlockNumber
-
 	txRaw := &Transaction{
-		Hash:         tx.Hash().String(),
+		Hash:         txHash.String(),
 		Value:        tx.Value().String(),
-		Gas:          tx.Gas(),
-		GasPrice:     tx.GasPrice().Uint64(),
 		To:           tx.To().String(),
 		Pending:      isPending,
 		Nonce:        tx.Nonce(),
-		Confirmation: int64(confirmations),
+		Confirmation: 1,
 		Blockhash:    log.BlockHash.Hex(),
 		BlockIndex:   int64(log.BlockNumber),
 	}
@@ -184,18 +175,13 @@ func (t *Transactions) ContractCheckDetail(log types.Log, pending bool) (*Transa
 }
 
 func (t *Transactions) GetBlockNative(from int64, to int64) ([]*Transaction, error) {
-
-	header, err := t.client.HeaderByNumber(context.Background(), nil)
-	if err != nil {
-		return nil, err
-	}
 	var transactions []*Transaction
 	for i := from; i < to; i++ {
 		block, err := t.client.BlockByNumber(context.Background(), big.NewInt(i))
 		if err != nil {
 			continue
 		}
-		transactionsIn, _ := t.ProcessTransations(block.Transactions(), header.Number.Uint64())
+		transactionsIn, _ := t.ProcessTransations(block.Transactions())
 		transactions = append(transactions, transactionsIn...)
 	}
 
@@ -203,43 +189,24 @@ func (t *Transactions) GetBlockNative(from int64, to int64) ([]*Transaction, err
 }
 
 func (t *Transactions) GetBlockNativeByBlock(blockNumber int64) ([]*Transaction, error) {
-	header, err := t.client.HeaderByNumber(context.Background(), nil)
-	if err != nil {
-		return nil, err
-	}
 	var transactions []*Transaction
 	block, err := t.client.BlockByNumber(context.Background(), big.NewInt(blockNumber))
 	if err != nil {
 		return nil, err
 	}
-	transactions, _ = t.ProcessTransations(block.Transactions(), header.Number.Uint64())
+	transactions, _ = t.ProcessTransations(block.Transactions())
 	return transactions, nil
 }
 
-func (t *Transactions) ProcessTransations(txs types.Transactions, blockNumber uint64) ([]*Transaction, error) {
+func (t *Transactions) ProcessTransations(txs types.Transactions) ([]*Transaction, error) {
 	var transactions []*Transaction
 	for _, tx := range txs {
 		if tx.Value().Int64() > 0 {
-			receipt, err := t.client.TransactionReceipt(context.Background(), tx.Hash())
-			if err != nil {
-				continue
-			}
-
-			chainID, err := t.client.NetworkID(context.Background())
-			if err != nil {
-				continue
-			}
-
-			msg, err := tx.AsMessage(types.NewEIP155Signer(chainID), nil)
-			if err != nil {
-				continue
-			}
 			var to string
 			if tx.To() != nil {
 				to = tx.To().String()
 			}
 
-			confirmations := blockNumber - receipt.BlockNumber.Uint64()
 			ValueFormated, _ := weiToEther(tx.Value(), params.Ether).Float64()
 			txRaw := &Transaction{
 				Hash:          tx.Hash().String(),
@@ -248,12 +215,9 @@ func (t *Transactions) ProcessTransations(txs types.Transactions, blockNumber ui
 				GasPrice:      tx.GasPrice().Uint64(),
 				To:            to,
 				Nonce:         tx.Nonce(),
-				Confirmation:  int64(confirmations),
+				Confirmation:  1,
 				ValueFormated: ValueFormated,
 				Symbol:        t.NativeName,
-				From:          msg.From().Hex(),
-				Blockhash:     receipt.BlockHash.Hex(),
-				BlockIndex:    int64(receipt.BlockNumber.Uint64()),
 			}
 			if index := t.FindTransactionByID(txRaw.Hash, transactions); index > 0 {
 				transactions[index] = txRaw
