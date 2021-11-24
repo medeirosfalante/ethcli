@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/fbsobreira/gotron-sdk/pkg/address"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
+	"log"
 )
 
 type TronAccount struct {
@@ -77,7 +78,7 @@ func PrivateKey(mnemonic, path string) (*ecdsa.PrivateKey, error){
 		return nil, err
 	}
 
-	p := hdwallet.MustParseDerivationPath(fmt.Sprintf("m/44'/195'/0'/0/%s", path))
+	p := hdwallet.MustParseDerivationPath(fmt.Sprintf(path))
 	account, err := wallet.Derive(p, false)
 	if err != nil {
 		return nil, err
@@ -98,7 +99,7 @@ func PublicKey(mnemonic, path string) (string, error){
 		return "", fmt.Errorf("mnemonic %s", err.Error())
 	}
 
-	p := hdwallet.MustParseDerivationPath(fmt.Sprintf("m/44'/195'/0'/0/%s", path))
+	p := hdwallet.MustParseDerivationPath(path)
 	account, err := wallet.Derive(p, false)
 	if err != nil {
 		return "", fmt.Errorf("account %s", err.Error())
@@ -110,6 +111,8 @@ func PublicKey(mnemonic, path string) (string, error){
 	}
 
 	addr := address.PubkeyToAddress(*publicKeyECDSA)
+
+	log.Println(addr.String())
 
 	return addr.String(), nil
 }
