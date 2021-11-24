@@ -132,3 +132,30 @@ func TestTronClient_Balance(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, balance)
 }
+
+func TestTronClient_TokenBalance(t *testing.T) {
+
+	client, err := tron.NewTronClient(TestGrpcAddress, grpc.WithInsecure())
+	if err != nil {
+		t.Fatalf("err %s", err.Error())
+	}
+
+	balance, err := client.TokenBalance("TYyxg8cPoR1uWh7aJUqShikruPvnJfv1e9",
+		"1002413")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, balance)
+}
+
+func TestTronClient_AccountBalance(t *testing.T) {
+
+	client, err := tron.NewTronClient(TestGrpcAddress, grpc.WithInsecure())
+	if err != nil {
+		t.Fatalf("err %s", err.Error())
+	}
+
+	balance, err := client.AccountBalance("TYyxg8cPoR1uWh7aJUqShikruPvnJfv1e9")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, balance)
+}
