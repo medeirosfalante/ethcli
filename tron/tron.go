@@ -1,18 +1,24 @@
 package tron
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fbsobreira/gotron-sdk/pkg/client"
 	"github.com/fbsobreira/gotron-sdk/pkg/proto/api"
 	"github.com/fbsobreira/gotron-sdk/pkg/proto/core"
 	"github.com/gogo/protobuf/proto"
+	"github.com/shopspring/decimal"
 	"google.golang.org/grpc"
+	"io/ioutil"
 	"log"
 	"math/big"
+	"net/http"
+	"time"
 )
 
 type TransferOpts struct{
@@ -27,6 +33,7 @@ type TransferOpts struct{
 type Client struct {
 	url string
 	conn *client.GrpcClient
+	http *http.Client
 }
 
 func NewTronClient(url string, opts ...grpc.DialOption) (*Client, error) {
@@ -35,7 +42,7 @@ func NewTronClient(url string, opts ...grpc.DialOption) (*Client, error) {
 	if err != nil{
 		return nil, err
 	}
-	return &Client{url: url, conn: conn}, nil
+	return &Client{url: url, conn: conn, http: &http.Client{Timeout: time.Second * 10}}, nil
 }
 
 func (t Client) SetApiKey(apikey string) error{
@@ -164,4 +171,102 @@ func (t *Client) sendTransaction(tx *core.Transaction) error {
 	return nil
 }
 
+//	TokenBalance only work with tron mainnet
+//	TokenID can also be contract address in case of TRC20
+func (t *Client) TokenBalance(address, tokenID string) (*big.Float, error) {
 
+	body, err := json.Marshal(&struct {
+		Address string `json:"address,omitempty"`
+	}{
+		Address: address,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("address is a invalid type")
+	}
+
+	req, err := http.NewRequest(http.MethodPost,
+		"https://apilist.tronscan.org/api/account", bytes.NewBuffer(body))
+
+	if err != nil {
+		return nil, fmt.Errorf("cannot request: %s", err.Error())
+	}
+
+	resp, err := t.http.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("cannot request: %s", err.Error())
+	}
+
+	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read body: %s", err.Error())
+	}
+
+	var account Account
+	err = json.Unmarshal(body, &account)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse information: %s", err.Error())
+	}
+
+	for _, trc20 := range account.TRC20 {
+		if trc20.TokenID == tokenID {
+			amount, _ := decimal.NewFromString(trc20.Balance)
+			return amount.BigFloat(), nil
+		}
+	}
+
+	for _, trc10 := range account.TRC10 {
+		if trc10.TokenID == tokenID {
+			amount, _ := decimal.NewFromString(trc10.Balance)
+			return amount.BigFloat(), nil
+		}
+	}
+
+	for _, balance := range account.Balances {
+		if balance.TokenID == tokenID {
+			amount, _ := decimal.NewFromString(balance.Balance)
+			return amount.BigFloat(), nil
+		}
+	}
+
+	return new(big.Float).SetFloat64(0), nil
+}
+
+func (t *Client) AccountBalance(address string) (*Account, error){
+
+	body, err := json.Marshal(&struct {
+		Address string `json:"address,omitempty"`
+	}{
+		Address: address,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("address is a invalid type")
+	}
+
+	req, err := http.NewRequest(http.MethodPost,
+		"https://apilist.tronscan.org/api/account", bytes.NewBuffer(body))
+
+	if err != nil {
+		return nil, fmt.Errorf("cannot request: %s", err.Error())
+	}
+
+	resp, err := t.http.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("cannot request: %s", err.Error())
+	}
+
+	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read body: %s", err.Error())
+	}
+
+	var account Account
+	err = json.Unmarshal(body, &account)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse information: %s", err.Error())
+	}
+
+	return &account, nil
+
+}
