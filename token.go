@@ -225,12 +225,11 @@ func (t *TokenErc20) Transfer(req *TransferOpts) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("instance %s", err.Error())
 	}
-	total := big.NewFloat(req.Amount)
 	ref, err := instance.Decimals(nil)
 	if err != nil {
 		return "", err
 	}
-	value := etherToWei(total, int(ref.Int64()))
+	value := util.ToWei(req.Amount, int(ref.Int64()))
 	auth.Nonce = big.NewInt(int64(nonce))
 	addressRef := common.HexToAddress(req.Address)
 	tx, err := instance.Transfer(auth, addressRef, value)
@@ -241,7 +240,7 @@ func (t *TokenErc20) Transfer(req *TransferOpts) (string, error) {
 
 }
 
-func (t *TokenErc20) ChainID() (*big.Int, error){
+func (t *TokenErc20) ChainID() (*big.Int, error) {
 	chainID, err := t.client.ChainID(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("chainID %s", err.Error())
