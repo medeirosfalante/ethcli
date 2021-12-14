@@ -121,20 +121,14 @@ func (t *Transactions) GetBlock(from int64, to int64, contractsAddresses []strin
 func (t *Transactions) ContractCheckDetail(log types.Log, pending bool) (*Transaction, error) {
 	txHash := common.HexToHash(log.TxHash.Hex())
 
-	tx, isPending, err := t.client.TransactionByHash(context.Background(), txHash)
-	if err != nil {
-		return nil, err
-	}
-
-	if tx.To() == nil {
+	if log.Address.String() != "" {
 		return nil, errors.New("to is null")
 	}
 	txRaw := &Transaction{
-		Hash:         txHash.String(),
-		Value:        tx.Value().String(),
-		To:           tx.To().String(),
-		Pending:      isPending,
-		Nonce:        tx.Nonce(),
+		Hash: txHash.String(),
+		// Value:        tx.Value().String(),
+		To: log.Address.String(),
+		// Nonce:        tx.Nonce(),
 		Confirmation: 1,
 		Blockhash:    log.BlockHash.Hex(),
 		BlockIndex:   int64(log.BlockNumber),
@@ -142,7 +136,6 @@ func (t *Transactions) ContractCheckDetail(log types.Log, pending bool) (*Transa
 
 	txRaw.From = common.HexToAddress(log.Topics[1].Hex()).String()
 	txRaw.To = common.HexToAddress(log.Topics[2].Hex()).String()
-
 	txRaw.ContractAddress = log.Address.String()
 	tokenAddress := common.HexToAddress(txRaw.ContractAddress)
 
@@ -165,7 +158,6 @@ func (t *Transactions) ContractCheckDetail(log types.Log, pending bool) (*Transa
 	if err != nil {
 		return nil, err
 	}
-
 	amount := weiToEther(tokenTransfer.Value, math.Pow10(int(ref.Int64())))
 	txRaw.Value = amount.String()
 	txRaw.Symbol = symbol
