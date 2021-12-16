@@ -44,6 +44,7 @@ type Transaction struct {
 	Blockhash       string  `json:"blockhash"`
 	BlockIndex      int64   `json:"blockindex"`
 	Blocktime       int64   `json:"blocktime"`
+	Status          uint64  `json:"status"`
 }
 
 // TransferEthRequest data structure
@@ -270,6 +271,7 @@ func (t *Transactions) GetTrasactionByHex(hash string) (*Transaction, error) {
 		From:          msg.From().Hex(),
 		Blockhash:     receipt.BlockHash.Hex(),
 		BlockIndex:    int64(receipt.BlockNumber.Uint64()),
+		Status:        receipt.Status,
 	}
 
 	return txRaw, nil
