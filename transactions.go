@@ -2,7 +2,7 @@ package ethcli
 
 import (
 	"context"
-	"errors"
+	"log"
 	"math"
 	"math/big"
 
@@ -98,6 +98,8 @@ func (t *Transactions) GetBlock(from int64, to int64, contractsAddresses []strin
 		Addresses: list,
 	}
 
+	log.Printf("query \n%#v\n", query)
+
 	logs, err := t.client.FilterLogs(context.Background(), query)
 	if err != nil {
 		return nil, err
@@ -105,14 +107,20 @@ func (t *Transactions) GetBlock(from int64, to int64, contractsAddresses []strin
 
 	var transactions []*Transaction
 	logTransferSig := []byte("Transfer(address,address,uint256)")
+
 	logTransferSigHash := crypto.Keccak256Hash(logTransferSig)
 	for _, vLog := range logs {
+		txHash := common.HexToHash(vLog.TxHash.Hex())
+		log.Printf("txHash %s\n", txHash)
+		log.Printf("Address %s\n", vLog.Address.String())
 		switch vLog.Topics[0].Hex() {
 		case logTransferSigHash.Hex():
 			txDetail, err := t.ContractCheckDetail(vLog, false)
 			if err != nil {
+				log.Printf("err ------> \n%#v\n", err)
 				continue
 			}
+			log.Printf("txDetail \n%#v\n", txDetail)
 			transactions = append(transactions, txDetail)
 		}
 	}
@@ -121,14 +129,9 @@ func (t *Transactions) GetBlock(from int64, to int64, contractsAddresses []strin
 
 func (t *Transactions) ContractCheckDetail(log types.Log, pending bool) (*Transaction, error) {
 	txHash := common.HexToHash(log.TxHash.Hex())
-
-	if log.Address.String() != "" {
-		return nil, errors.New("to is null")
-	}
 	txRaw := &Transaction{
 		Hash: txHash.String(),
 		// Value:        tx.Value().String(),
-		To: log.Address.String(),
 		// Nonce:        tx.Nonce(),
 		Confirmation: 1,
 		Blockhash:    log.BlockHash.Hex(),
@@ -239,9 +242,21 @@ func (t *Transactions) GetTrasactionByHex(hash string) (*Transaction, error) {
 		return nil, err
 	}
 
-	confirmations := header.Number.Int64() - receipt.BlockNumber.Int64()
+	var transaction *Transaction
+	logTransferSig := []byte("Transfer(address,address,uint256)")
+	logTransferSigHash := crypto.Keccak256Hash(logTransferSig)
+	for _, vLog := range receipt.Logs {
+		switch vLog.Topics[0].Hex() {
+		case logTransferSigHash.Hex():
+			txDetail, err := t.ContractCheckDetail(*vLog, false)
+			if err != nil {
+				continue
+			}
+			transaction = txDetail
+		}
+	}
 
-	ValueFormated, _ := weiToEther(tx.Value(), params.Ether).Float64()
+	confirmations := header.Number.Int64() - receipt.BlockNumber.Int64()
 
 	var to string
 	if tx.To() != nil {
@@ -260,14 +275,14 @@ func (t *Transactions) GetTrasactionByHex(hash string) (*Transaction, error) {
 
 	txRaw := &Transaction{
 		Hash:          tx.Hash().String(),
-		Value:         tx.Value().String(),
+		Value:         transaction.Value,
 		Gas:           tx.Gas(),
 		GasPrice:      tx.GasPrice().Uint64(),
 		To:            to,
 		Nonce:         tx.Nonce(),
 		Confirmation:  int64(confirmations),
-		ValueFormated: ValueFormated,
-		Symbol:        t.NativeName,
+		ValueFormated: transaction.ValueFormated,
+		Symbol:        transaction.Symbol,
 		From:          msg.From().Hex(),
 		Blockhash:     receipt.BlockHash.Hex(),
 		BlockIndex:    int64(receipt.BlockNumber.Uint64()),
