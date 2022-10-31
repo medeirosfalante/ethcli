@@ -271,6 +271,21 @@ func (t *Transactions) GetTrasactionByHex(hash string) (*Transaction, error) {
 		return nil, err
 	}
 
+	if transaction == nil {
+		ValueFormated, _ := weiToEther(tx.Value(), params.Ether).Float64()
+		transaction = &Transaction{
+			Hash:          tx.Hash().String(),
+			Value:         tx.Value().String(),
+			Gas:           tx.Gas(),
+			GasPrice:      tx.GasPrice().Uint64(),
+			To:            to,
+			Nonce:         tx.Nonce(),
+			Confirmation:  1,
+			ValueFormated: ValueFormated,
+			Symbol:        t.NativeName,
+		}
+	}
+
 	txRaw := &Transaction{
 		Hash:          tx.Hash().String(),
 		Value:         transaction.Value,
