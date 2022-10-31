@@ -216,10 +216,19 @@ func (t *TokenErc20) Transfer(req *TransferOpts) (string, error) {
 			if address != fromAddress {
 				return nil, errors.New("not authorized to sign this account")
 			}
+			// if chainID.Int64() == 80001 {
+			// 	return wallet.SignTx(account, tx, chainID)
+
+			// }
 			return wallet.SignTxEIP155(account, tx, chainID)
 		},
 	}
 
+	gasPrice, err := t.GetGasPrice()
+	if err != nil {
+		return "", fmt.Errorf("GetGasPrice %s", err.Error())
+	}
+	auth.GasPrice = gasPrice
 	tokenAddress := common.HexToAddress(t.TokenAddress)
 	instance, err := abi.NewToken(tokenAddress, t.client)
 	if err != nil {
@@ -246,4 +255,8 @@ func (t *TokenErc20) ChainID() (*big.Int, error) {
 		return nil, fmt.Errorf("chainID %s", err.Error())
 	}
 	return chainID, nil
+}
+
+func (t *TokenErc20) GetGasPrice() (*big.Int, error) {
+	return t.client.SuggestGasPrice(context.Background())
 }

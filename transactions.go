@@ -98,8 +98,6 @@ func (t *Transactions) GetBlock(from int64, to int64, contractsAddresses []strin
 		Addresses: list,
 	}
 
-	log.Printf("query \n%#v\n", query)
-
 	logs, err := t.client.FilterLogs(context.Background(), query)
 	if err != nil {
 		return nil, err
@@ -268,7 +266,7 @@ func (t *Transactions) GetTrasactionByHex(hash string) (*Transaction, error) {
 		return nil, err
 	}
 
-	msg, err := tx.AsMessage(types.NewEIP155Signer(chainID), nil)
+	msg, err := tx.AsMessage(types.LatestSignerForChainID(chainID), nil)
 	if err != nil {
 		return nil, err
 	}
